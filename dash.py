@@ -24,18 +24,19 @@ st.markdown("""
 @st.cache_data
 def load_data():
     try:
-        # محاولة قراءة الملف بترميز UTF-8 أولاً، ثم latin1 إذا فشل
-        try:
-            df = pd.read_csv('final_electricity_data.csv', encoding='utf-8')
-        except:
-            df = pd.read_csv('final_electricity_data.csv', encoding='latin1')
+        # العودة لقراءة ملف الإكسل الأصلي
+        df = pd.read_excel('final_electricity_data.xlsx')
+        
+        # تنظيف عمود الحالة من أي مسافات زائدة
+        df['Status'] = df['Status'].astype(str).str.strip()
+        
+        # تحويل الأعمدة لنصوص نظيفة
+        for col in ['Year', 'Contract Account', 'Collective CA']:
+            df[col] = df[col].astype(str).str.replace('.0', '', regex=False)
             
-        df['Year'] = df['Year'].astype(str).str.replace('.0', '', regex=False)
-        df['Contract Account'] = df['Contract Account'].astype(str).str.replace('.0', '', regex=False)
-        df['Collective CA'] = df['Collective CA'].astype(str).str.replace('.0', '', regex=False)
         return df
     except Exception as e:
-        st.error(f"خطأ في تحميل ملف البيانات: {e}")
+        st.error(f"خطأ في تحميل ملف الإكسل: {e}")
         return None
 
 df = load_data()
