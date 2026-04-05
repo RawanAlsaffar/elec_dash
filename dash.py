@@ -51,18 +51,40 @@ try:
 except:
     st.sidebar.warning("لم يتم العثور على شعار الهيئة في المستودع.")
 
-st.sidebar.title("   لوحة تحكم ")
+st.sidebar.title("   لوحة تحكم ")
 صفحة = st.sidebar.radio("انتقل إلى:", ["📊 الملخص التنفيذي المقارن", "📈 تحليل الاستهلاك والنمو", "🔍 التدقيق المالي"])
 
 # الفلاتر
 st.sidebar.markdown("---")
+
+# 1. فلتر السنوات
 الكل_سنوات = st.sidebar.checkbox("اختيار كل السنوات", value=True)
 سنوات_مختارة = sorted(df['Year'].unique()) if الكل_سنوات else st.sidebar.multiselect("السنة:", sorted(df['Year'].unique()))
 
+# 2. فلتر الشهور (الإضافة المطلوبة)
+st.sidebar.markdown("---")
+الكل_شهور = st.sidebar.checkbox("اختيار كل الشهور", value=True)
+قائمة_الشهور = ["January", "February", "March", "April", "May", "June", 
+                "July", "August", "September", "October", "November", "December"]
+
+if الكل_شهور:
+    شهور_مختارة = قائمة_الشهور
+else:
+    # نختار فقط الشهور الموجودة فعلياً في بياناتك
+    الشهور_الموجودة = [m for m in قائمة_الشهور if m in df['Month'].unique()]
+    شهور_مختارة = st.sidebar.multiselect("الشهر:", الشهور_الموجودة, default=الشهور_الموجودة)
+
+# 3. فلتر الحسابات التجميعية
+st.sidebar.markdown("---")
 الكل_تجميعي = st.sidebar.checkbox("اختيار كل الحسابات", value=True)
 حسابات_مختارة = sorted(df['Collective CA'].unique()) if الكل_تجميعي else st.sidebar.multiselect("الحساب التجميعي:", sorted(df['Collective CA'].unique()))
 
-df_filtered = df[(df['Year'].isin(سنوات_مختارة)) & (df['Collective CA'].isin(حسابات_مختارة))]
+# تطبيق الفلترة النهائية (تشمل السنة، الشهر، والحساب)
+df_filtered = df[
+    (df['Year'].isin(سنوات_مختارة)) & 
+    (df['Month'].isin(شهور_مختارة)) & 
+    (df['Collective CA'].isin(حسابات_مختارة))
+]
 
 if df_filtered.empty:
     st.warning("⚠️ لا توجد بيانات مطابقة للفلاتر المختارة.")
