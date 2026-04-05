@@ -40,9 +40,9 @@ if df is None:
 
 # --- 2. القائمة الجانبية (Sidebar) ---
 try:
-    st.sidebar.image(r"C:\Users\vooxn\OneDrive\Desktop\elec_dash\SRCAlogo_local_cmyk.jpg", use_container_width=True)
+    st.sidebar.image("SRCAlogo_local_cmyk.jpg", use_container_width=True)
 except:
-    st.sidebar.warning("لم يتم العثور على شعار الهيئة.")
+    st.sidebar.warning("لم يتم العثور على شعار الهيئة في المستودع.")
 
 st.sidebar.title("   لوحة تحكم ")
 صفحة = st.sidebar.radio("انتقل إلى:", ["📊 الملخص التنفيذي المقارن", "📈 تحليل الاستهلاك والنمو", "🔍 التدقيق المالي"])
