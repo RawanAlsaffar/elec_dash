@@ -26,7 +26,7 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    file_name = 'كمية جديداستهلاك هيئة الهلال الاحمر السعودي (نسخة بعد المعالجة).xlsx'
+    file_name = 'data.xlsx'
     try:
         df = pd.read_excel(file_name)
         df['Year'] = df['Year'].astype(str).str.replace('.0', '', regex=False)
