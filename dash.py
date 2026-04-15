@@ -131,6 +131,7 @@ if df is not None:
             fig_top5 = px.bar(top5, x='Net Sales Amount', y='Collective CA', orientation='h',
                               color='Net Sales Amount', color_continuous_scale='Reds')
             fig_top5.update_layout(showlegend=False, yaxis={'categoryorder':'total ascending'})
+            fig_top5.update_yaxes(type='category') # هذا يجبر النظام على عرض الرقم كما هو كـ نص وليس كرقم رياضي يختصره
             st.plotly_chart(fig_top5, use_container_width=True)
 
         st.markdown("---")
@@ -200,11 +201,20 @@ if df is not None:
         st.markdown("---")
         st.subheader("🚩 أعلى 5 عدادات زيادةً في التكلفة")
         pivot_df = df_filtered.pivot_table(index='Contract Account', columns='Year', values='Net Sales Amount', aggfunc='sum').fillna(0)
+        
         if '2024' in pivot_df.columns and '2025' in pivot_df.columns:
             pivot_df['الفرق'] = pivot_df['2025'] - pivot_df['2024']
             top_5 = pivot_df.sort_values(by='الفرق', ascending=False).head(5).reset_index()
             top_5_melted = top_5.melt(id_vars='Contract Account', value_vars=['2024', '2025'], var_name='السنة', value_name='المبلغ')
-            fig_top5 = px.bar(top_5_melted, x='Contract Account', y='المبلغ', color='السنة', barmode='group', color_discrete_map={'2024': '#555555', '2025': '#D32F2F'}, text_auto='.2s')
+            
+            fig_top5 = px.bar(top_5_melted, x='Contract Account', y='المبلغ', color='السنة', 
+                             barmode='group', 
+                             color_discrete_map={'2024': '#555555', '2025': '#D32F2F'}, 
+                             text_auto='.2s')
+            
+            # --- التعديل السحري هنا لإظهار الأرقام كاملة ---
+            fig_top5.update_xaxes(type='category', tickangle=45) # حولناه لنص وخلينا الزاوية 45 عشان ما تتداخل الأرقام
+            
             st.plotly_chart(fig_top5, use_container_width=True)
 
     # ---------------------------------------------------------
