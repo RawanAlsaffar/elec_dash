@@ -83,80 +83,104 @@ if df is not None:
 
     # تعريف التبويبات
   
-    tab1, tab2, tab3, tab4 = st.tabs(["🏠 الملخص التنفيذي والجودة", "📊 التحليل الإحصائي", "🏢 إدارة الأصول", "🤖 التوقعات ل 2026"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🏠 نظره عامة ", "📊 التحليل الإحصائي", "🏢 إدارة الأصول", "🤖 التوقعات ل 2026"])
 
-    # ---------------------------------------------------------
-    # تبويب 1: الملخص التنفيذي والجودة
+    # تبويب 1: نظرة عامة (الملخص التنفيذي)
     # ---------------------------------------------------------
     with tab1:
-        st.header("📊 الملخص المالي ومؤشرات جودة البيانات")
-        with st.expander("🛡️ تقرير موثوقية وجودة البيانات", expanded=True):
+        st.header("⚡ نظره عامة على الحسابات ")
+        
+        # 1. المربعات الاحترافية (KPI Cards) - نفس استايل الصورة
+        # بنعرض مقارنة مباشرة بين 2024 و 2025
+        # 1. المربعات الاحترافية (KPI Cards) - تفاعلية مع الفلاتر
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        
+        # مبالغ السنوات (ثابتة للمقارنة أو يمكن جعلها مفلترة حسب رغبتك)
+        val_2024 = df[df['Year'] == '2024']['Net Sales Amount'].sum()
+        val_2025 = df[df['Year'] == '2025']['Net Sales Amount'].sum()
+        
+        # العدادات والحسابات التجميعية (مفلترة بناءً على اختيارك في الـ Sidebar)
+        filtered_meters = df_filtered['Contract Account'].nunique()
+        filtered_collectives = df_filtered['Collective CA'].nunique()
+        
+        # العرض
+        kpi1.metric("إجمالي ميزانية 2024", f"{val_2024/1e6:.2f}M ريال")
+        kpi2.metric("إجمالي ميزانية 2025", f"{val_2025/1e6:.2f}M ريال")
+        
+        # هنا الإجابة على سؤالك: هذه المربعات ستتغير فوراً مع الفلتر
+        kpi3.metric("العدادات ", f"{filtered_meters:,}")
+        kpi4.metric("الحسابات التجميعية", f"{filtered_collectives:,}")
+
+        st.markdown("---")
+
+        # 2. توزيع المخططات بجانب بعض (Layout) مثل صور زميلك
+        col_chart1, col_chart2 = st.columns([1.5, 1])
+
+        with col_chart1:
+            st.subheader("📈 التطور الشهري للاستهلاك 2024-2025")
+            trend = df_filtered.groupby(['Year', 'Month'])['Net Sales Amount'].sum().reset_index()
+            trend['Month'] = pd.Categorical(trend['Month'], categories=all_months, ordered=True)
+            fig_trend = px.line(trend.sort_values('Month'), x='Month', y='Net Sales Amount', color='Year', 
+                                 markers=True, line_shape="spline", 
+                                 color_discrete_map={'2024': '#555555', '2025': '#D32F2F'})
+            st.plotly_chart(fig_trend, use_container_width=True)
+
+        with col_chart2:
+            st.subheader("🔝 أعلى 5 حسابات تجميعية")
+            top5 = df_filtered.groupby('Collective CA')['Net Sales Amount'].sum().nlargest(5).reset_index()
+            fig_top5 = px.bar(top5, x='Net Sales Amount', y='Collective CA', orientation='h',
+                              color='Net Sales Amount', color_continuous_scale='Reds')
+            fig_top5.update_layout(showlegend=False, yaxis={'categoryorder':'total ascending'})
+            st.plotly_chart(fig_top5, use_container_width=True)
+
+        st.markdown("---")
+
+        # 3. قسم جودة البيانات (مطور بناءً على طلبك)
+        with st.expander("🛡️ تقرير جودة البيانات", expanded=True):
+            # حسابات الجودة
+            q1, q2, q3, q4 = st.columns(4)
+            q1.metric("القيم المفقودة", f" {MISSING}")
+            q2.metric("السجلات المكررة", f" {DUPLICATES}")
+            q3.metric("إجمالي السجلات", f"{len(df_filtered):,}")
+            q4.write("**بعد التنظيف:**")
+            st.markdown("<p style='font-size:12px; color:gray;'>تم معالجة التكرار وحصر الأصول الخاملة لضمان دقة التوقعات.</p>", unsafe_allow_html=True)
+
+            st.markdown("---")
+            
+            # عرض العدادات الخاملة
             check_meters = df_filtered.groupby(['Contract Account']).agg({
                 'Net Sales Amount': 'sum',
                 'Net Sales Quantity': 'sum'
             }).reset_index()
-            
             zero_meters_count = len(check_meters[check_meters['Net Sales Amount'] == 0])
             zero_qty_count = len(check_meters[check_meters['Net Sales Quantity'] == 0])
 
-            q1, q2, q3, q4 = st.columns(4)
-            q1.metric("القيم المفقودة", f"✅ {MISSING}")
-            q2.metric("السجلات المكررة", f"✅ {DUPLICATES}")
-            q3.metric("إجمالي السجلات", f"{len(df_filtered):,}")
-            q4.write("**🛠️ مجهود التنظيف:**")
-            st.markdown("<p style='font-size:12px; color:gray;'>تم معالجة التكرار وحصر الأصول الخاملة.</p>", unsafe_allow_html=True)
-            
-            st.markdown("---")
             z1, z2 = st.columns(2)
-            z1.warning(f"🏠 **عدادات خاملة في الفترة المختارة:** {zero_meters_count:,} عداد")
-            z2.info(f"⚡ **عدادات بدون استهلاك في الفترة المختارة:** {zero_qty_count:,} عداد")
+            z1.warning(f"🏠 **عدادات خاملة..:** {zero_meters_count:,} عداد")
+            z2.info(f"⚡ **عدادات بدون استهلاك   :** {zero_qty_count:,} عداد")
 
-        # KPIs المالية
-        m1, m2, m3 = st.columns(3)
-        filtered_collective_count = df_filtered['Collective CA'].nunique()
-        m1.metric("إجمالي المبالغ", f"{df_filtered['Net Sales Amount'].sum():,.2f} ريال")
-        m2.metric("إجمالي الاستهلاك", f"{df_filtered['Net Sales Quantity'].sum():,.0f} وحدة")
-        m3.metric("الحسابات التجميعية النشطة", f"{filtered_collective_count} حساب")
-
-        # تحليل الميزانية
-        st.subheader("⚖️ تحليل الميزانية السنوية")
-        cols = st.columns(len(selected_years)) if len(selected_years) > 0 else st.columns(1)
-        for i, year in enumerate(sorted(selected_years)):
-            y_amt = df_filtered[df_filtered['Year'] == year]['Net Sales Amount'].sum()
-            cols[i].markdown(f"<div style='background-color:#ffffff; padding:15px; border-radius:10px; border-right:5px solid #D32F2F; text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'><p style='color:#555555; font-weight:bold; margin-bottom:5px;'>إجمالي ميزانية سنة {year}</p><span style='color:#D32F2F; font-size:24px; font-weight:bold;'>{y_amt:,.0f} ريال</span></div>", unsafe_allow_html=True)
-
-        # إعادة رسم التطور الشهري (الرسم المفقود)
-        st.subheader("📈 التطور الشهري للاستهلاك (2024 vs 2025)")
-        trend = df_filtered.groupby(['Year', 'Month'])['Net Sales Amount'].sum().reset_index()
-        trend['Month'] = pd.Categorical(trend['Month'], categories=all_months, ordered=True)
-        fig_trend = px.line(trend.sort_values('Month'), x='Month', y='Net Sales Amount', color='Year', 
-                             markers=True, line_shape="spline", 
-                             color_discrete_map={'2024': '#555555', '2025': '#D32F2F'})
-        st.plotly_chart(fig_trend, use_container_width=True, key="main_line_chart")
-
-        # سجل الحسابات المتوقفة
+        # 4. سجل الحسابات المتوقفة (مثل كودك الأصلي)
         st.subheader("⚠️ سجل الحسابات التجميعية المتوقفة")
         ca_24 = set(df[df['Year'] == '2024']['Collective CA'].unique())
         ca_25 = set(df[df['Year'] == '2025']['Collective CA'].unique())
         stopped_accounts = sorted(list(ca_24 - ca_25))
         if stopped_accounts:
-            st.warning(f"تم رصد {len(stopped_accounts)} حساب تجميعي توقف في عام 2025")
+            st.error(f"تم رصد {len(stopped_accounts)} حساب تجميعي توقف في عام 2025")
             stopped_df = pd.DataFrame(stopped_accounts, columns=['رقم الحساب التجميعي المتوقف'])
             st.dataframe(stopped_df, use_container_width=True)
-            st.download_button("📥 تحميل قائمة المتوقفين", data=stopped_df.to_csv(index=False).encode('utf-8-sig'), file_name="stopped_accounts.csv")
 
     # ---------------------------------------------------------
     # تبويب 2: التحليل الإحصائي
     # ---------------------------------------------------------
     with tab2:
-        st.header("📈 مجهر التحليل والمقارنة الإحصائية")
+        st.header("📈  التحليل والمقارنة الإحصائية")
         df_24 = df_filtered[df_filtered['Year'] == '2024']
         df_25 = df_filtered[df_filtered['Year'] == '2025']
         
         sum_24, sum_25 = df_24['Net Sales Amount'].sum(), df_25['Net Sales Amount'].sum()
         if sum_24 > 0:
             growth = ((sum_25 - sum_24) / sum_24) * 100
-            st.metric(label="📊 معدل التغير (2024 vs 2025)", value=f"{growth:,.2f}%", delta=f"{growth:,.2f}%", delta_color="inverse")
+            st.metric(label=" معدل التغير (2024 vs 2025)", value=f"{growth:,.2f}%", delta=f"{growth:,.2f}%", delta_color="inverse")
         
         st.markdown("---")
         k1, k2, k3 = st.columns(3)
@@ -230,8 +254,8 @@ if df is not None:
             st.caption(f"💡 تم ترتيب العدادات تنازلياً حسب متوسط الصرف (الأعلى أولاً). إجمالي المعروض: {len(meter_performance)} عداد.")
 
         st.markdown("---")
-        st.subheader("📋 كاشف تفاصيل الحساب التجميعي")
-        target_ca = st.selectbox("🎯 اختر حساباً للمعاينة:", sorted(df_filtered['Collective CA'].unique()), key="ca_sel")
+        st.subheader("📋  تفاصيل الحساب التجميعي")
+        target_ca = st.selectbox(" اختر حساباً للمعاينة:", sorted(df_filtered['Collective CA'].unique()), key="ca_sel")
         if target_ca:
             ca_details = df_filtered[df_filtered['Collective CA'] == target_ca]
             active = ca_details[ca_details['Net Sales Amount'] > 0]
@@ -242,29 +266,15 @@ if df is not None:
             c3.metric("إجمالي الاستهلاك", f"{unique_list['Net Sales Quantity'].sum():,.0f}")
             st.dataframe(unique_list.sort_values('Net Sales Amount', ascending=False), use_container_width=True)
 
-            # ---------------------------------------------------------
-# ---------------------------------------------------------
-   # ---------------------------------------------------------
-   # ---------------------------------------------------------
-    # تبويب 4: التوقعات الذكية لعام 2026 (ميزانية كاملة ومقارنة)
     # ---------------------------------------------------------
-    # ---------------------------------------------------------
-    # تبويب 4: التوقعات الذكية لعام 2026 (ميزانية كاملة ومقارنة)
-    # ---------------------------------------------------------
-    # ---------------------------------------------------------
-    # تبويب 4: التوقعات الذكية لعام 2026 (النسخة المصححة)
-    # ---------------------------------------------------------
-   # ---------------------------------------------------------
-    # تبويب 4: التوقعات الذكية لعام 2026 (تفاعلي مع الفلاتر)
-    # ---------------------------------------------------------
-    # ---------------------------------------------------------
+ # ---------------------------------------------------------
     # تبويب 4: التوقعات الذكية لعام 2026 (ميزانية مستقلة)
     # ---------------------------------------------------------
     with tab4:
         import joblib
         import os
 
-        st.header("🤖 محرك التنبؤ المالي - ميزانية 2026")
+        st.header("🤖 تنبؤات 2026")
         
         model_path = 'xgb_model_srca.pkl'
         means_path = 'ca_means.pkl'
@@ -273,7 +283,7 @@ if df is not None:
             model_ca = joblib.load(model_path)
             ca_means = joblib.load(means_path)
 
-            if st.button("🔮 توليد توقعات 2026 للفترة المختارة"):
+            if st.button(" توقعات 2026"):
                 with st.spinner('جاري بناء الميزانية المتوقعة...'):
                     
                     # تجهيز البيانات بناءً على الفلاتر
@@ -301,15 +311,14 @@ if df is not None:
                         f_df['Predicted'] = model_ca.predict(f_df[features])
 
                         # --- القسم الأول: ميزانية 2026 فقط ---
-                        st.subheader("📊 منحنى الميزانية التقديرية لعام 2026")
+                        st.subheader(" منحنى الميزانية التقديرية لعام 2026")
                         
-                        # تجميع التوقعات حسب الشهر
                         pred_monthly = f_df.groupby('Month_Num')['Predicted'].sum().reset_index()
                         
                         fig_2026_only = px.line(pred_monthly, x='Month_Num', y='Predicted',
                                              markers=True, line_shape="spline",
-                                             color_discrete_sequence=['#D32F2F'], # اللون الأحمر للهوية
-                                             title="توزيع ميزانية 2026 المتوقعة (12 شهر)")
+                                             color_discrete_sequence=['#D32F2F'],
+                                             title="توزيع ميزانية 2026 المتوقعة ")
                         
                         fig_2026_only.update_layout(
                             xaxis=dict(tickmode='linear', tick0=1, dtick=1, title="الشهر"),
@@ -330,6 +339,24 @@ if df is not None:
                             st.subheader("🔮 أعلى 5 متوقعة (2026)")
                             future_t = f_df.groupby('Collective CA')['Predicted'].sum().nlargest(5).reset_index()
                             st.dataframe(future_t.rename(columns={'Collective CA': 'الحساب', 'Predicted': 'توقع 2026'}), use_container_width=True)
+
+                        # --- القسم الإضافي: جدول البيانات التفصيلي القابل للبحث ---
+                        st.markdown("---")
+                        st.subheader("📋 تفاصيل التوقعات والأصول لجميع الحسابات")
+                        
+                        # تجميع التوقعات المالية لكل حساب
+                        ca_forecast = f_df.groupby('Collective CA')['Predicted'].sum().reset_index()
+                        
+                        # حساب عدد العدادات (الأصول) التابعة لكل حساب من البيانات الأصلية
+                        ca_assets = df[df['Collective CA'].isin(active_cas)].groupby('Collective CA')['Contract Account'].nunique().reset_index()
+                        
+                        # دمج البيانات في جدول واحد
+                        final_table = pd.merge(ca_forecast, ca_assets, on='Collective CA')
+                        final_table.columns = ['رقم الحساب التجميعي', 'ميزانية 2026 المتوقعة (ريال)', 'عدد العدادات التابعة']
+                        
+                        # عرض الجدول مع خاصية البحث والفلترة التلقائية من ستريملت
+                        st.dataframe(final_table.sort_values(by='ميزانية 2026 المتوقعة (ريال)', ascending=False), use_container_width=True)
+                        st.caption("💡 يمكنك استخدام أيقونة البحث فوق الجدول للبحث عن حساب معين. الجدول مرتب تنازلياً حسب التكلفة المتوقعة.")
 
                     else:
                         st.warning("⚠️ يرجى اختيار حسابات تجميعية من القائمة الجانبية.")
