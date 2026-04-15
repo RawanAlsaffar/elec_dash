@@ -346,7 +346,7 @@ if df is not None:
                             past_t = current_df.groupby('Collective CA')['Net Sales Amount'].sum().nlargest(5).reset_index()
                             st.dataframe(past_t.rename(columns={'Collective CA': 'الحساب', 'Net Sales Amount': 'صرف فعلي'}), use_container_width=True)
                         with col_f:
-                            st.subheader("🔮 أعلى 5 متوقعة (2026)")
+                            st.subheader(" أعلى 5 متوقعة 2026")
                             future_t = f_df.groupby('Collective CA')['Predicted'].sum().nlargest(5).reset_index()
                             st.dataframe(future_t.rename(columns={'Collective CA': 'الحساب', 'Predicted': 'توقع 2026'}), use_container_width=True)
 
