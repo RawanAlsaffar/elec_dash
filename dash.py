@@ -26,7 +26,7 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    file_name = 'data.xlsx'
+    file_name = 'كمية جديداستهلاك هيئة الهلال الاحمر السعودي (نسخة بعد المعالجة).xlsx'
     try:
         df = pd.read_excel(file_name)
         df['Year'] = df['Year'].astype(str).str.replace('.0', '', regex=False)
@@ -73,7 +73,7 @@ if df is not None:
         sel_all_meters = st.checkbox("اختيار كل العدادات", value=True)
         selected_meters = available_meters if sel_all_meters else st.multiselect("🔢 ابحث عن رقم عداد معين:", available_meters)
 
-    # تطبيق الفلترة الصارمة
+    # تطبيق الفلترة 
     mask = (df['Year'].isin(selected_years)) & \
            (df['Month'].isin(selected_months)) & \
            (df['Collective CA'].isin(selected_cas)) & \
@@ -82,7 +82,8 @@ if df is not None:
     df_filtered = df[mask]
 
     # تعريف التبويبات
-    tab1, tab2, tab3 = st.tabs(["🏠 الملخص التنفيذي والجودة", "📊 التحليل الإحصائي", "🏢 إدارة الأصول"])
+  
+    tab1, tab2, tab3, tab4 = st.tabs(["🏠 الملخص التنفيذي والجودة", "📊 التحليل الإحصائي", "🏢 إدارة الأصول", "🤖 التوقعات ل 2026"])
 
     # ---------------------------------------------------------
     # تبويب 1: الملخص التنفيذي والجودة
@@ -241,6 +242,106 @@ if df is not None:
             c3.metric("إجمالي الاستهلاك", f"{unique_list['Net Sales Quantity'].sum():,.0f}")
             st.dataframe(unique_list.sort_values('Net Sales Amount', ascending=False), use_container_width=True)
 
+            # ---------------------------------------------------------
+# ---------------------------------------------------------
+   # ---------------------------------------------------------
+   # ---------------------------------------------------------
+    # تبويب 4: التوقعات الذكية لعام 2026 (ميزانية كاملة ومقارنة)
+    # ---------------------------------------------------------
+    # ---------------------------------------------------------
+    # تبويب 4: التوقعات الذكية لعام 2026 (ميزانية كاملة ومقارنة)
+    # ---------------------------------------------------------
+    # ---------------------------------------------------------
+    # تبويب 4: التوقعات الذكية لعام 2026 (النسخة المصححة)
+    # ---------------------------------------------------------
+   # ---------------------------------------------------------
+    # تبويب 4: التوقعات الذكية لعام 2026 (تفاعلي مع الفلاتر)
+    # ---------------------------------------------------------
+    # ---------------------------------------------------------
+    # تبويب 4: التوقعات الذكية لعام 2026 (ميزانية مستقلة)
+    # ---------------------------------------------------------
+    with tab4:
+        import joblib
+        import os
+
+        st.header("🤖 محرك التنبؤ المالي - ميزانية 2026")
+        
+        model_path = 'xgb_model_srca.pkl'
+        means_path = 'ca_means.pkl'
+
+        if os.path.exists(model_path) and os.path.exists(means_path):
+            model_ca = joblib.load(model_path)
+            ca_means = joblib.load(means_path)
+
+            if st.button("🔮 توليد توقعات 2026 للفترة المختارة"):
+                with st.spinner('جاري بناء الميزانية المتوقعة...'):
+                    
+                    # تجهيز البيانات بناءً على الفلاتر
+                    current_df = df_filtered.copy()
+                    active_cas = current_df['Collective CA'].unique()
+                    future_data = []
+                    
+                    # نأخذ آخر استهلاك كمرجع للنمط (Lag)
+                    last_amounts = current_df.groupby('Collective CA')['Net Sales Amount'].last().to_dict()
+
+                    for ca in active_cas:
+                        for m_idx in range(1, 13):
+                            future_data.append({
+                                'Collective CA': ca,
+                                'Year_Num': 2026,
+                                'Month_Num': m_idx,
+                                'Quarter': (m_idx-1)//3 + 1,
+                                'Last_Month_Sales': last_amounts.get(ca, 0),
+                                'CA_Average': ca_means.get(ca, 0)
+                            })
+                    
+                    if future_data:
+                        f_df = pd.DataFrame(future_data)
+                        features = ['Year_Num', 'Month_Num', 'Quarter', 'Last_Month_Sales', 'CA_Average']
+                        f_df['Predicted'] = model_ca.predict(f_df[features])
+
+                        # --- القسم الأول: ميزانية 2026 فقط ---
+                        st.subheader("📊 منحنى الميزانية التقديرية لعام 2026")
+                        
+                        # تجميع التوقعات حسب الشهر
+                        pred_monthly = f_df.groupby('Month_Num')['Predicted'].sum().reset_index()
+                        
+                        fig_2026_only = px.line(pred_monthly, x='Month_Num', y='Predicted',
+                                             markers=True, line_shape="spline",
+                                             color_discrete_sequence=['#D32F2F'], # اللون الأحمر للهوية
+                                             title="توزيع ميزانية 2026 المتوقعة (12 شهر)")
+                        
+                        fig_2026_only.update_layout(
+                            xaxis=dict(tickmode='linear', tick0=1, dtick=1, title="الشهر"),
+                            yaxis_title="إجمالي التوقع (ريال)",
+                            hovermode="x unified",
+                            template="plotly_white"
+                        )
+                        st.plotly_chart(fig_2026_only, use_container_width=True)
+
+                        # --- القسم الثاني: المقارنة المالية (أعلى 5) ---
+                        st.markdown("---")
+                        col_p, col_f = st.columns(2)
+                        with col_p:
+                            st.subheader(f"⬅️ أعلى 5 في {selected_years[0] if selected_years else '2024'}")
+                            past_t = current_df.groupby('Collective CA')['Net Sales Amount'].sum().nlargest(5).reset_index()
+                            st.dataframe(past_t.rename(columns={'Collective CA': 'الحساب', 'Net Sales Amount': 'صرف فعلي'}), use_container_width=True)
+                        with col_f:
+                            st.subheader("🔮 أعلى 5 متوقعة (2026)")
+                            future_t = f_df.groupby('Collective CA')['Predicted'].sum().nlargest(5).reset_index()
+                            st.dataframe(future_t.rename(columns={'Collective CA': 'الحساب', 'Predicted': 'توقع 2026'}), use_container_width=True)
+
+                    else:
+                        st.warning("⚠️ يرجى اختيار حسابات تجميعية من القائمة الجانبية.")
+
+            # --- القسم الثالث: تفاصيل الموديل (الزبده) ---
+            st.markdown("---")
+            m1, m2, m3 = st.columns(3)
+            m1.info("**الخوارزمية:** \n\n XGBoost Regressor")
+            m2.success("**الدقة:** \n\n 97.07% (R2 Score)")
+            m3.warning("**الأساس:** \n\n الأنماط الموسمية وتاريخ الاستهلاك")
+        else:
+            st.warning("⚠️ ملفات الموديل (.pkl) مفقودة")
 # ---------------------------------------------------------
 # Footer
 # ---------------------------------------------------------
