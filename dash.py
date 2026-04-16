@@ -157,8 +157,8 @@ if df is not None:
             zero_qty_count = len(check_meters[check_meters['Net Sales Quantity'] == 0])
 
             z1, z2 = st.columns(2)
-            z1.warning(f"🏠 **عدادات خاملة..:** {zero_meters_count:,} عداد")
-            z2.info(f"⚡ **عدادات بدون استهلاك   :** {zero_qty_count:,} عداد")
+            z1.warning(f"⚡**عدادات فاتورتها صفر ريال ..:** {zero_meters_count:,} عداد")
+            z2.info(f"⚡**عدادات قد تكون مفصوله لم يتم تسجيل اي صرف فعلي    :** {zero_qty_count:,} عداد")
 
         # 4. سجل الحسابات المتوقفة (مثل كودك الأصلي)
         st.subheader("⚠️ سجل الحسابات التجميعية المتوقفة")
